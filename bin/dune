@@ -5,10 +5,15 @@
  (modes js))
 
 (rule
+    (targets index.html)
+    (deps main.html)
+    (action (run cp %{deps} %{targets})))
+
+(rule
     (targets main.js)
     (deps main.bc.js)
     (action (run cp %{deps} %{targets})))
 
 (alias
     (name default)
-    (deps main.js main.html))
+    (deps main.js index.html))
