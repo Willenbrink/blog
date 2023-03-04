@@ -1,0 +1,14 @@
+(executable
+ (name main)
+ (libraries js_of_ocaml brr
+    raytracer)
+ (modes js))
+
+(rule
+    (targets main.js)
+    (deps main.bc.js)
+    (action (run cp %{deps} %{targets})))
+
+(alias
+    (name default)
+    (deps main.js main.html))
