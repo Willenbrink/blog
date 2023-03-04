@@ -71,25 +71,32 @@ type sphere = Sphere.t = { center: Vec.t; radius: float; color: Vec.t }
 let normal ({center; radius; _}) r dist =
   Vec.normalize ((Ray.at dist r) -| center)
 
-let hits r world =
-  let f acc el =
-    let max_dist = match acc with
-      | None -> Float.infinity
-      | Some (_,dist) -> dist
+let ray_color world r =
+  let rec hit r =
+    let f acc el =
+      let max_dist = match acc with
+        | None -> Float.infinity
+        | Some (_,dist) -> dist
+      in
+      match Sphere.hit el r 0. max_dist with
+      | None -> acc
+      | Some hit -> Some (el, hit)
     in
-    match Sphere.hit el r 0. max_dist with
-    | None -> acc
-    | Some hit -> Some (el, hit)
+    match List.fold_left f None world with
+    | None -> None
+    | Some (el, dist) -> Some (el, dist, normal el r dist)
+  and ray_color ({pos; dir} as r) count hit_data = match (count, hit_data) with
+    | 0,_ | _,None ->
+      let unit = Vec.normalize dir in
+      let t = 0.5 *. (unit.y +. 1.) in
+      Vec.(make 1. 1. 1.) *| (1. -. t) +| Vec.(make 0.5 0.7 1.) *| t
+    | count, Some (el,dist,norm) ->
+      let reflect = {pos; dir=dir+|norm*| 2.} in
+      let color_ref = ray_color reflect (count - 1) (hit reflect)      in
+      color_ref *| 0.5
+      (* (norm +| Vec.(make 1. 1. 1.)) *| 0.5 *)
   in
-  List.fold_left f None world
-
-let ray_color ({pos; dir} as r) = function
-  | None ->
-    let unit = Vec.normalize dir in
-    let t = 0.5 *. (unit.y +. 1.) in
-    Vec.(make 1. 1. 1.) *| (1. -. t) +| Vec.(make 0.5 0.7 1.) *| t
-  | Some (el,dist) ->
-    (normal el r dist +| Vec.(make 1. 1. 1.)) *| 0.5
+  ray_color r 5 (hit r)
 
 
 let write_color array row col (color : vec) =
@@ -112,7 +119,7 @@ let main array (w_i,h_i) sqrt_samples_per_pixel =
   let world = [
     {center = (Vec.make 0. 0. (-1.)); radius = 0.5; color = (Vec.make 1. 0. 0.)};
     (* {center = (Vec.make 0. c (-1.)); radius = (c -. 0.5); color = (Vec.make 1. 0. 0.)}; *)
-    (* {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)}; *)
+    {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)};
     {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; color = (Vec.make 0. 1. 0.)};
 
   ] in
@@ -126,7 +133,7 @@ let main array (w_i,h_i) sqrt_samples_per_pixel =
 
           let r = Camera.ray cam u v in
 
-          color := !color +| (hits r world |> ray_color r);
+          color := !color +| (ray_color world r);
         done;
       done;
       (* print_chance 0.0001 (fun () -> Printf.printf "%f %f %f\n" r.dir.x r.dir.y r.dir.z); *)
