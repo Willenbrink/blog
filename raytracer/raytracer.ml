@@ -74,6 +74,7 @@ let main array (w_i,h_i) =
       let v = (float_of_int row) /. (h -. 1.) in
       let r = { pos=origin; dir=ll_corner  +| horizontal *| u +| vertical *| v -| origin } in
       let color = ray_color r in
+
       (* print_chance 0.0001 (fun () -> Printf.printf "%f %f %f\n" r.dir.x r.dir.y r.dir.z); *)
       write_color array row col color
 
