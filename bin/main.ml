@@ -1,8 +1,8 @@
 open Brr
 
 let convert_to_img_data bigarray =
-  let w = Bigarray.Array2.dim1 bigarray in
-  let h = Bigarray.Array2.dim2 bigarray in
+  let h = Bigarray.Array2.dim1 bigarray in
+  let w = Bigarray.Array2.dim2 bigarray in
   let data =
     Bigarray.reshape_1 (Bigarray.genarray_of_array2 bigarray) (w * h)
   in
@@ -15,15 +15,22 @@ let convert_to_img_data bigarray =
   Brr_canvas.C2d.Image_data.create ~data ~w:(w / 4) ~h ()
 
 let raytrace_main canvas () =
-  let init y x = match x mod 4 with
+  let init row col = match col mod 4 with
     | 3 -> 255
     | _ -> 0
   in
   let open Bigarray in
   let open Brr_canvas.Canvas in
-  let array = Array2.init Int8_unsigned C_layout (4 * w canvas) (h canvas) init in
-  Raytracer.main array;
+  let array = Array2.init Int8_unsigned C_layout (h canvas) (4 * w canvas) init in
+  begin
+    try
+      Raytracer.main array (w canvas, h canvas)
+    with
+    | e ->
+      Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
+  end;
   let data = convert_to_img_data array in
+  Util.log data |> ignore;
   let ctx = Brr_canvas.C2d.get_context canvas in
   Brr_canvas.C2d.put_image_data ctx data ~x:0 ~y:0
 

@@ -16,6 +16,7 @@
 (documentation https://url/to/documentation)
 
 (package
+ (allow_empty) ;TODO?
  (name blog)
  (synopsis "A short synopsis")
  (description "A longer description")
