@@ -43,18 +43,27 @@ module Sphere = struct
       | true,_ -> Some root1
       | _, true -> Some root2
       | _ -> None
+end
 
-  let hit_sphere {center; radius; _} {pos; dir} =
-    let pc = pos -| center in
-    let a = Vec.dot dir dir in
-    let b = Vec.dot pc dir *. 2. in
-    let c = Vec.dot pc pc -. radius *. radius in
-    let discr = b*.b -. 4.*.a*.c in
-    if discr > 0.
-    then Some (( (-. b) -. sqrt discr) /. (2. *. a))
-    else None
+module Camera = struct
+  type t = {pos: Vec.t; ll_corner: Vec.t; horizontal: Vec.t; vertical: Vec.t }
 
+  let make w h =
+    let h_vp = 2. in
+    let w_vp = w /. h *. h_vp in
+    let focal_length = 1. in
 
+    let pos = Vec.make 0. 0. 0. in
+    let horizontal = Vec.make w_vp 0. 0. in
+    let vertical = Vec.make 0. h_vp 0. in
+    let ll_corner = pos -| horizontal /| 2. -| vertical /| 2. -| (Vec.make 0. 0. focal_length) in
+    { pos; ll_corner; horizontal; vertical; }
+
+  let ray {pos; ll_corner; horizontal; vertical; } u v =
+    {
+      pos;
+      dir = Vec.normalize @@ ll_corner  +| horizontal *| u +| vertical *| v -| pos
+    }
 end
 
 type sphere = Sphere.t = { center: Vec.t; radius: float; color: Vec.t }
@@ -74,7 +83,7 @@ let hits r world =
   in
   List.fold_left f None world
 
-let color ({pos; dir} as r) = function
+let ray_color ({pos; dir} as r) = function
   | None ->
     let unit = Vec.normalize dir in
     let t = 0.5 *. (unit.y +. 1.) in
@@ -97,16 +106,9 @@ let write_color array row col (color : vec) =
   end
 
 
-let main array (w_i,h_i) =
+let main array (w_i,h_i) sqrt_samples_per_pixel =
   let w, h = float_of_int w_i, float_of_int h_i in
-  let h_vp = 2. in
-  let w_vp = w /. h *. h_vp in
-  let focal_length = 1. in
-
-  let origin = Vec.make 0. 0. 0. in
-  let horizontal = Vec.make w_vp 0. 0. in
-  let vertical = Vec.make 0. h_vp 0. in
-  let ll_corner = origin -| horizontal /| 2. -| vertical /| 2. -| (Vec.make 0. 0. focal_length) in
+  let cam = Camera.make w h in
   let world = [
     {center = (Vec.make 0. 0. (-1.)); radius = 0.5; color = (Vec.make 1. 0. 0.)};
     (* {center = (Vec.make 0. c (-1.)); radius = (c -. 0.5); color = (Vec.make 1. 0. 0.)}; *)
@@ -116,25 +118,21 @@ let main array (w_i,h_i) =
   ] in
   for row = 0 to h_i - 1 do
     for col = 0 to w_i - 1 do
-      let u = (float_of_int col) /. (w -. 1.) in
-      let v = (float_of_int row) /. (h -. 1.) in
-      let r = {
-        pos = origin;
-        dir = Vec.normalize @@ ll_corner  +| horizontal *| u +| vertical *| v -| origin
-      }
-      in
+      let color = ref (Vec.make 0. 0. 0.) in
+      for sample1 = 0 to sqrt_samples_per_pixel - 1 do
+        for sample2 = 0 to sqrt_samples_per_pixel - 1 do
+          let u = ((float_of_int sample1) *. 0.1 +. (float_of_int col)) /. (w -. 1.) in
+          let v = ((float_of_int sample2) *. 0.1 +. (float_of_int row)) /. (h -. 1.) in
 
-      let color =
-        hits r world
-        |> color r
-      in
+          let r = Camera.ray cam u v in
 
+          color := !color +| (hits r world |> ray_color r);
+        done;
+      done;
       (* print_chance 0.0001 (fun () -> Printf.printf "%f %f %f\n" r.dir.x r.dir.y r.dir.z); *)
-      write_color array row col color
-
-    done
+      write_color array row col (!color /| (float_of_int (sqrt_samples_per_pixel * sqrt_samples_per_pixel)))
+    done;
+    Brr.Console.log [row];
   done;
-
-
 
   ()

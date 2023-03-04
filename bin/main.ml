@@ -24,7 +24,7 @@ let raytrace_main canvas () =
   let array = Array2.init Int8_unsigned C_layout (h canvas) (4 * w canvas) init in
   begin
     try
-      Raytracer.main array (w canvas, h canvas)
+      Raytracer.main array (w canvas, h canvas) 5
     with
     | e ->
       Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
