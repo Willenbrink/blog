@@ -14,6 +14,14 @@ module Vec = struct
     let ( *|) = mult
     let (/|) = div
   end
+
+  let near_zero t =
+    abs_float t.x <= Float.epsilon *. 4.
+    || abs_float t.y <= Float.epsilon *. 4.
+    || abs_float t.z <= Float.epsilon *. 4.
+
+  let albedo_correct t =
+    { x = sqrt t.x; y = sqrt t.y; z = sqrt t.z; }
 end
 type vec = Vec.t = {x : float; y : float; z : float}
 
@@ -26,10 +34,12 @@ module Ray = struct
 end
 type ray = Ray.t = {pos: Vec.t; dir: Vec.t}
 
-type hit = { pos : Vec.t; normal : Vec.t; dist : float; front_face : bool }
+type material = Diffuse of Vec.t | Metal of Vec.t | FuzzyMetal of Vec.t * float
+
+type hit = { pos : Vec.t; normal : Vec.t; dist : float; front_face : bool; mat : material }
 
 module Sphere = struct
-  type t = { center: Vec.t; radius: float; color: Vec.t }
+  type t = { center: Vec.t; radius: float; mat: material }
 
   let hit_dist {center; radius; _} {pos; dir} t_min t_max =
     let pc = pos -| center in
@@ -91,7 +101,7 @@ module Camera = struct
     }
 end
 
-type sphere = Sphere.t = { center: Vec.t; radius: float; color: Vec.t }
+type sphere = Sphere.t = { center: Vec.t; radius: float; mat: material }
 
 let normal ({center; radius; _}) r dist =
   let normal = Vec.normalize ((Ray.at dist r) -| center) in
@@ -112,7 +122,7 @@ let ray_color world r =
       | None -> acc
       | Some dist ->
         let normal, front_face = normal el r dist in
-        Some { pos=Ray.at dist r; normal; dist; front_face }
+        Some { pos=Ray.at dist r; normal; dist; front_face; mat = el.mat }
     in
     List.fold_left f None world
   and ray_color r count hit_data = match (count, hit_data) with
@@ -120,23 +130,32 @@ let ray_color world r =
       let unit = Vec.normalize r.dir in
       let t = 0.5 *. (unit.y +. 1.) in
       Vec.(make 1. 1. 1.) *| (1. -. t) +| Vec.(make 0.5 0.7 1.) *| t
-    | count, Some { pos; normal; dist; front_face } ->
-      (* let vec_refl = {pos; dir = r.dir +| normal *| 2.} in *)
-      (* let color_refl = ray_color vec_refl (count - 1) (hit vec_refl) in *)
-
-      let vec_diff = {pos; dir = normal +| Sphere.random_on_unit_sphere ()} in
-      let color_diff = ray_color vec_diff (count - 1) (hit vec_diff) in
-      (* color_refl *| 0.5 *)
-      color_diff *| 0.5
-      (* (norm +| Vec.(make 1. 1. 1.)) *| 0.5 *)
+    | count, Some { pos; normal; dist; front_face; mat} ->
+      let mat_color = match mat with Diffuse c | Metal c | FuzzyMetal (c,_) -> c in
+      let ray = match mat with
+        | Diffuse _ ->
+          (* TODO in theory, dir might be zero. This should be avoided if it really is a problem *)
+          {pos; dir = normal +| Sphere.random_on_unit_sphere ()}
+        | Metal _ ->
+          {pos; dir = r.dir +| normal *| 2.}
+        | FuzzyMetal (_, f) ->
+          {pos; dir = r.dir +| normal *| 2. +| Sphere.random_on_unit_sphere () *| f}
+      in
+      let color = ray_color ray (count - 1) (hit ray) in
+      Vec.{
+        x = color.x *. mat_color.x;
+        y = color.y *. mat_color.y;
+        z = color.z *. mat_color.z;
+      }
   in
   ray_color r 20 (hit r)
 
 
 let write_color array row col (color : vec) num_samples =
   let scale = 1. /. num_samples in
+  let color = (Vec.albedo_correct @@ color *| scale) *| 255. in
   let color_of_float float =
-    int_of_float @@ sqrt (scale *. float) *. 255.
+    int_of_float float
   in
   let r = color_of_float color.x in
   let g = color_of_float color.y in
@@ -156,10 +175,12 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
   let w, h = float_of_int w_i, float_of_int h_i in
   let cam = Camera.make w h in
   let world = [
-    {center = (Vec.make 0. 0. (-1.)); radius = 0.5; color = (Vec.make 1. 0. 0.)};
+    {center = (Vec.make (-1.) 0. (-1.)); radius = 0.5; mat = Metal (Vec.make 0.8 0.8 0.8)};
+    {center = (Vec.make 0. 0. (-1.)); radius = 0.5; mat = Diffuse (Vec.make 0.7 0.3 0.3)};
+    {center = (Vec.make 1. 0. (-1.)); radius = 0.5; mat = FuzzyMetal (Vec.make 0.8 0.6 0.2, 0.3)};
     (* {center = (Vec.make 0. c (-1.)); radius = (c -. 0.5); color = (Vec.make 1. 0. 0.)}; *)
     (* {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)}; *)
-    {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; color = (Vec.make 0. 1. 0.)};
+    {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; mat = Diffuse (Vec.make 0.8 0.8 0.)};
 
   ] in
   for row = 0 to h_i - 1 do
