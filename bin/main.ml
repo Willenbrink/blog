@@ -25,7 +25,7 @@ let raytrace_main canvas () =
   let rng () = Js_of_ocaml__Js.math##random in
   begin
     try
-      Raytracer.main rng array (w canvas, h canvas) 10
+      Raytracer.main rng array (w canvas, h canvas) 3
     with
     | e ->
       Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
@@ -37,7 +37,7 @@ let raytrace_main canvas () =
 
 
 let main () =
-  let w,h = 300, 200 in
+  let w,h = 900, 600 in
   let h1 = El.h1 [El.txt' "Media test"] in
   let info = El.txt' "Media information is dumped in the browser console."in
   let stream = ref None in

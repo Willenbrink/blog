@@ -183,24 +183,69 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
     {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; mat = Diffuse (Vec.make 0.8 0.8 0.)};
 
   ] in
-  for row = 0 to h_i - 1 do
-    for col = 0 to w_i - 1 do
+  Brr.Console.log ["Raytracing"];
+  let samples = Array.init h_i (fun row ->
+      Brr.Console.log [row];
+      Array.init w_i (fun col ->
+          let color = ref (Vec.make 0. 0. 0.) in
+          for sample1 = 0 to sqrt_samples_per_pixel - 1 do
+            for sample2 = 0 to sqrt_samples_per_pixel - 1 do
+              let u = ((float_of_int sample1) *. 0.1 +. (float_of_int col)) /. (w -. 1.) in
+              let v = ((float_of_int sample2) *. 0.1 +. (float_of_int row)) /. (h -. 1.) in
+
+              let r = Camera.ray cam u v in
+
+              color := !color +| (ray_color world r);
+            done;
+          done;
+          !color
+        )
+    )
+  in
+  Brr.Console.log ["Aggregating samples"];
+  let kernel = 3 in
+  let kernel_weight i j = match kernel with
+    | 1 -> [|
+        [|4.;2.|];
+        [|2.;1.|];
+      |].(abs i).(abs j)
+    | 2 -> [|
+        [|41.;26.;7.|];
+        [|26.;16.;4.|];
+        [|07.;04.;1.|];
+      |].(abs i).(abs j)
+    | 3 -> [|
+        [|159.;97.;22.;2.|];
+        [|97.;59.;13.;1.|];
+        [|22.;13.;3.;0.|];
+        [|2.;1.;0.;0.|];
+      |].(abs i).(abs j)
+    | _ -> 1.
+  in
+  let kernel_sum = float_of_int @@ match kernel with
+    | 1 -> 16
+    | 2 -> 273
+    | 3 -> 1003
+    | _ -> (kernel*2+1) * (kernel*2+1)
+  in
+  for row = kernel to h_i - kernel - 1 do
+    for col = kernel to w_i - kernel - 1 do
       let color = ref (Vec.make 0. 0. 0.) in
-      for sample1 = 0 to sqrt_samples_per_pixel - 1 do
-        for sample2 = 0 to sqrt_samples_per_pixel - 1 do
-          let u = ((float_of_int sample1) *. 0.1 +. (float_of_int col)) /. (w -. 1.) in
-          let v = ((float_of_int sample2) *. 0.1 +. (float_of_int row)) /. (h -. 1.) in
-
-          let r = Camera.ray cam u v in
-
-          color := !color +| (ray_color world r);
+      for sample1 = -kernel to kernel do
+        for sample2 = -kernel to kernel do
+          color := !color +| samples.(row + sample1).(col + sample2) *| kernel_weight sample1 sample2;
         done;
       done;
+      samples.(row).(col) <- !color /| kernel_sum;
+    done;
+  done;
+  Brr.Console.log ["Writing file"];
+  for row = 0 to h_i - 1 do
+    for col = 0 to w_i - 1 do
       (* print_chance 0.0001 (fun () -> Printf.printf "%f %f %f\n" r.dir.x r.dir.y r.dir.z); *)
       let samples_per_pixel = float_of_int (sqrt_samples_per_pixel * sqrt_samples_per_pixel) in
-      write_color array row col !color samples_per_pixel
+      write_color array row col samples.(row).(col) samples_per_pixel
     done;
-    Brr.Console.log [row];
   done;
 
   ()
