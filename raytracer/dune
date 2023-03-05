@@ -1,3 +1,3 @@
 (library
  (name raytracer)
- (libraries vector3 js_of_ocaml brr))
+ (libraries vector3 js_of_ocaml brr containers))

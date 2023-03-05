@@ -2,8 +2,8 @@
  (name main)
  (libraries js_of_ocaml brr
     raytracer)
- ;(preprocess
-  ;(pps js_of_ocaml_ppx))
+ (preprocess
+  (pps js_of_ocaml-ppx))
  (modes js))
 
 (rule

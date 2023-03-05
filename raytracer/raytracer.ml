@@ -1,5 +1,7 @@
+let rng = ref (fun () -> 0.)
+
 let print_chance chance printf =
-  if Random.float 1. < chance
+  if !rng () < chance
   then printf ()
 
 module Vec = struct
@@ -24,10 +26,12 @@ module Ray = struct
 end
 type ray = Ray.t = {pos: Vec.t; dir: Vec.t}
 
+type hit = { pos : Vec.t; normal : Vec.t; dist : float; front_face : bool }
+
 module Sphere = struct
   type t = { center: Vec.t; radius: float; color: Vec.t }
 
-  let hit {center; radius; _} {pos; dir} t_min t_max =
+  let hit_dist {center; radius; _} {pos; dir} t_min t_max =
     let pc = pos -| center in
     let a = Vec.mag2 dir in
     let half_b = Vec.dot pc dir in
@@ -43,6 +47,27 @@ module Sphere = struct
       | true,_ -> Some root1
       | _, true -> Some root2
       | _ -> None
+
+  let rec random_in_sphere ({center; radius; _} as s) =
+    let r1 = !rng () *. radius *. 2. in
+    let r2 = !rng () *. radius *. 2. in
+    let r3 = !rng () *. radius *. 2. in
+    let rand = Vec.make r1 r2 r3 in
+    if Vec.mag2 rand >= 1.
+    then random_in_sphere s
+    else center +| rand
+
+  let rec random_in_unit_sphere () =
+    let r1 = !rng () *. 2. -. 1. in
+    let r2 = !rng () *. 2. -. 1. in
+    let r3 = !rng () *. 2. -. 1. in
+    let rand = Vec.make r1 r2 r3 in
+    if Vec.mag2 rand >= 1.
+    then random_in_unit_sphere ()
+    else rand
+
+  let random_on_unit_sphere () =
+    Vec.normalize (random_in_unit_sphere ())
 end
 
 module Camera = struct
@@ -69,40 +94,53 @@ end
 type sphere = Sphere.t = { center: Vec.t; radius: float; color: Vec.t }
 
 let normal ({center; radius; _}) r dist =
-  Vec.normalize ((Ray.at dist r) -| center)
+  let normal = Vec.normalize ((Ray.at dist r) -| center) in
+  let front_face = Vec.dot r.dir normal < 0. in
+  if front_face
+  then normal, true
+  else normal *| (-1.), false
+
 
 let ray_color world r =
   let rec hit r =
     let f acc el =
       let max_dist = match acc with
         | None -> Float.infinity
-        | Some (_,dist) -> dist
+        | Some { dist; _ } -> dist
       in
-      match Sphere.hit el r 0. max_dist with
+      match Sphere.hit_dist el r 0.0001 max_dist with
       | None -> acc
-      | Some hit -> Some (el, hit)
+      | Some dist ->
+        let normal, front_face = normal el r dist in
+        Some { pos=Ray.at dist r; normal; dist; front_face }
     in
-    match List.fold_left f None world with
-    | None -> None
-    | Some (el, dist) -> Some (el, dist, normal el r dist)
-  and ray_color ({pos; dir} as r) count hit_data = match (count, hit_data) with
+    List.fold_left f None world
+  and ray_color r count hit_data = match (count, hit_data) with
     | 0,_ | _,None ->
-      let unit = Vec.normalize dir in
+      let unit = Vec.normalize r.dir in
       let t = 0.5 *. (unit.y +. 1.) in
       Vec.(make 1. 1. 1.) *| (1. -. t) +| Vec.(make 0.5 0.7 1.) *| t
-    | count, Some (el,dist,norm) ->
-      let reflect = {pos; dir=dir+|norm*| 2.} in
-      let color_ref = ray_color reflect (count - 1) (hit reflect)      in
-      color_ref *| 0.5
+    | count, Some { pos; normal; dist; front_face } ->
+      (* let vec_refl = {pos; dir = r.dir +| normal *| 2.} in *)
+      (* let color_refl = ray_color vec_refl (count - 1) (hit vec_refl) in *)
+
+      let vec_diff = {pos; dir = normal +| Sphere.random_on_unit_sphere ()} in
+      let color_diff = ray_color vec_diff (count - 1) (hit vec_diff) in
+      (* color_refl *| 0.5 *)
+      color_diff *| 0.5
       (* (norm +| Vec.(make 1. 1. 1.)) *| 0.5 *)
   in
-  ray_color r 5 (hit r)
+  ray_color r 20 (hit r)
 
 
-let write_color array row col (color : vec) =
-  let r = int_of_float (color.x *. 255.) in
-  let g = int_of_float (color.y *. 255.) in
-  let b = int_of_float (color.z *. 255.) in
+let write_color array row col (color : vec) num_samples =
+  let scale = 1. /. num_samples in
+  let color_of_float float =
+    int_of_float @@ sqrt (scale *. float) *. 255.
+  in
+  let r = color_of_float color.x in
+  let g = color_of_float color.y in
+  let b = color_of_float color.z in
   begin
     try
       Bigarray.Array2.set array row (4*col+0) r;
@@ -113,13 +151,14 @@ let write_color array row col (color : vec) =
   end
 
 
-let main array (w_i,h_i) sqrt_samples_per_pixel =
+let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
+  rng := rng_arg;
   let w, h = float_of_int w_i, float_of_int h_i in
   let cam = Camera.make w h in
   let world = [
     {center = (Vec.make 0. 0. (-1.)); radius = 0.5; color = (Vec.make 1. 0. 0.)};
     (* {center = (Vec.make 0. c (-1.)); radius = (c -. 0.5); color = (Vec.make 1. 0. 0.)}; *)
-    {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)};
+    (* {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)}; *)
     {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; color = (Vec.make 0. 1. 0.)};
 
   ] in
@@ -137,7 +176,8 @@ let main array (w_i,h_i) sqrt_samples_per_pixel =
         done;
       done;
       (* print_chance 0.0001 (fun () -> Printf.printf "%f %f %f\n" r.dir.x r.dir.y r.dir.z); *)
-      write_color array row col (!color /| (float_of_int (sqrt_samples_per_pixel * sqrt_samples_per_pixel)))
+      let samples_per_pixel = float_of_int (sqrt_samples_per_pixel * sqrt_samples_per_pixel) in
+      write_color array row col !color samples_per_pixel
     done;
     Brr.Console.log [row];
   done;
