@@ -34,7 +34,11 @@ module Ray = struct
 end
 type ray = Ray.t = {pos: Vec.t; dir: Vec.t}
 
-type material = Diffuse of Vec.t | Metal of Vec.t | FuzzyMetal of Vec.t * float
+type material =
+  | Diffuse of Vec.t
+  | Metal of Vec.t
+  | FuzzyMetal of Vec.t * float
+  | Dielectric of float
 
 type hit = { pos : Vec.t; normal : Vec.t; dist : float; front_face : bool; mat : material }
 
@@ -131,15 +135,45 @@ let ray_color world r =
       let t = 0.5 *. (unit.y +. 1.) in
       Vec.(make 1. 1. 1.) *| (1. -. t) +| Vec.(make 0.5 0.7 1.) *| t
     | count, Some { pos; normal; dist; front_face; mat} ->
-      let mat_color = match mat with Diffuse c | Metal c | FuzzyMetal (c,_) -> c in
+      let mat_color = match mat with
+        | Diffuse c
+        | Metal c
+        | FuzzyMetal (c,_) -> c
+        | Dielectric _ -> Vec.make 1. 1. 1.
+      in
+      let reflect fuzz =
+        {pos; dir = r.dir +| normal *| 2. +| Sphere.random_on_unit_sphere () *| fuzz}
+      in
       let ray = match mat with
         | Diffuse _ ->
           (* TODO in theory, dir might be zero. This should be avoided if it really is a problem *)
           {pos; dir = normal +| Sphere.random_on_unit_sphere ()}
         | Metal _ ->
-          {pos; dir = r.dir +| normal *| 2.}
+          reflect 0.
         | FuzzyMetal (_, f) ->
-          {pos; dir = r.dir +| normal *| 2. +| Sphere.random_on_unit_sphere () *| f}
+          reflect f
+        | Dielectric index_of_refr ->
+          let unit_dir = Vec.normalize r.dir in
+          let refr_ratio = if front_face then (1. /. index_of_refr) else index_of_refr in
+
+          let cos_theta = Float.min (Vec.dot (unit_dir *| (-1.)) normal) 1. in
+          let sin_theta = sqrt (1. -. cos_theta *. cos_theta) in
+
+          let reflectance =
+            let r0 = Float.pow ((1. -. refr_ratio) /. (1. +. refr_ratio)) 2. in
+            r0 +. (1. -. r0) *. Float.pow (1. -. cos_theta) 5.
+          in
+
+          if refr_ratio *. sin_theta > 1. || reflectance > !rng ()
+          then
+            reflect 0.
+          else
+            let refract =
+              let r_out_perp = (unit_dir +| normal *| cos_theta) *| refr_ratio in
+              let r_out_parallel = normal *| -. sqrt (abs_float (1. -. Vec.mag2 r_out_perp)) in
+              r_out_perp +| r_out_parallel
+            in
+            {pos; dir = refract}
       in
       let color = ray_color ray (count - 1) (hit ray) in
       Vec.{
@@ -176,8 +210,9 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
   let cam = Camera.make w h in
   let world = [
     {center = (Vec.make (-1.) 0. (-1.)); radius = 0.5; mat = Metal (Vec.make 0.8 0.8 0.8)};
-    {center = (Vec.make 0. 0. (-1.)); radius = 0.5; mat = Diffuse (Vec.make 0.7 0.3 0.3)};
-    {center = (Vec.make 1. 0. (-1.)); radius = 0.5; mat = FuzzyMetal (Vec.make 0.8 0.6 0.2, 0.3)};
+    {center = (Vec.make 0. 0. (-1.)); radius = 0.5; mat = Dielectric 1.5};
+    (* {center = (Vec.make 0. 0. (-1.)); radius = 0.5; mat = Diffuse (Vec.make 0.7 0.3 0.3)}; *)
+    {center = (Vec.make 1. 0. (-1.)); radius = 0.5; mat = FuzzyMetal (Vec.make 0.8 0.6 0.2, 0.1)};
     (* {center = (Vec.make 0. c (-1.)); radius = (c -. 0.5); color = (Vec.make 1. 0. 0.)}; *)
     (* {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)}; *)
     {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; mat = Diffuse (Vec.make 0.8 0.8 0.)};
@@ -203,7 +238,7 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
     )
   in
   Brr.Console.log ["Aggregating samples"];
-  let kernel = 3 in
+  let kernel = 0 in
   let kernel_weight i j = match kernel with
     | 1 -> [|
         [|4.;2.|];
