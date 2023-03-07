@@ -87,21 +87,26 @@ end
 module Camera = struct
   type t = {pos: Vec.t; ll_corner: Vec.t; horizontal: Vec.t; vertical: Vec.t }
 
-  let make w h =
-    let h_vp = 2. in
-    let w_vp = w /. h *. h_vp in
-    let focal_length = 1. in
+  let make lookfrom lookat vup vfov aspect_ratio =
+    let theta = vfov /. 360. *. (2. *. Float.pi) in
+    let h = Float.tan (theta /. 2.) in
+    let h_vp = 2. *. h in
+    let w_vp = aspect_ratio *. h_vp in
 
-    let pos = Vec.make 0. 0. 0. in
-    let horizontal = Vec.make w_vp 0. 0. in
-    let vertical = Vec.make 0. h_vp 0. in
-    let ll_corner = pos -| horizontal /| 2. -| vertical /| 2. -| (Vec.make 0. 0. focal_length) in
+    let w = Vec.normalize (lookfrom -| lookat) in
+    let u = Vec.(normalize (cross vup w)) in
+    let v = Vec.cross u w in
+
+    let pos = lookfrom in
+    let horizontal = u *| w_vp in
+    let vertical = v *| h_vp in
+    let ll_corner = pos -| horizontal /| 2. -| vertical /| 2. -| w in
     { pos; ll_corner; horizontal; vertical; }
 
-  let ray {pos; ll_corner; horizontal; vertical; } u v =
+  let ray {pos; ll_corner; horizontal; vertical; } s t =
     {
       pos;
-      dir = Vec.normalize @@ ll_corner  +| horizontal *| u +| vertical *| v -| pos
+      dir = Vec.normalize @@ ll_corner  +| horizontal *| s +| vertical *| t -| pos;
     }
 end
 
@@ -207,7 +212,12 @@ let write_color array row col (color : vec) num_samples =
 let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
   rng := rng_arg;
   let w, h = float_of_int w_i, float_of_int h_i in
-  let cam = Camera.make w h in
+  let cam = Camera.make
+      Vec.(make (-2.) 2. 1.)
+      Vec.(make 0. 0. (-1.))
+      Vec.(make 0. 1. 0.)
+      35. (w /. h)
+  in
   let world = [
     {center = (Vec.make (-1.) 0. (-1.)); radius = 0.5; mat = Metal (Vec.make 0.8 0.8 0.8)};
     {center = (Vec.make 0. 0. (-1.)); radius = 0.5; mat = Dielectric 1.5};
@@ -215,7 +225,7 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
     {center = (Vec.make 1. 0. (-1.)); radius = 0.5; mat = FuzzyMetal (Vec.make 0.8 0.6 0.2, 0.1)};
     (* {center = (Vec.make 0. c (-1.)); radius = (c -. 0.5); color = (Vec.make 1. 0. 0.)}; *)
     (* {center = (Vec.make 0. (-10.5) (-1.)); radius = 9.; color = (Vec.make 0. 1. 0.)}; *)
-    {center = (Vec.make 0. (100.5) (-1.)); radius = 100.; mat = Diffuse (Vec.make 0.8 0.8 0.)};
+    {center = (Vec.make 0. (-100.5) (-1.)); radius = 100.; mat = Diffuse (Vec.make 0.8 0.8 0.)};
 
   ] in
   Brr.Console.log ["Raytracing"];
