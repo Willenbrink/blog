@@ -42,6 +42,13 @@ type material =
 
 type hit = { pos : Vec.t; normal : Vec.t; dist : float; front_face : bool; mat : material }
 
+let rec random_in_unit_disc () =
+  let r1 = !rng () *. 2. -. 1. in
+  let r2 = !rng () *. 2. -. 1. in
+  if (r1 *. r1) +. (r2 *. r2) >= 1.
+  then random_in_unit_disc ()
+  else r1, r2
+
 module Sphere = struct
   type t = { center: Vec.t; radius: float; mat: material }
 
@@ -85,9 +92,14 @@ module Sphere = struct
 end
 
 module Camera = struct
-  type t = {pos: Vec.t; ll_corner: Vec.t; horizontal: Vec.t; vertical: Vec.t }
+  type t = {
+    pos: Vec.t; ll_corner: Vec.t;
+    horizontal: Vec.t; vertical: Vec.t;
+    u: Vec.t; v: Vec.t; w: Vec.t;
+    lens_radius: float;
+  }
 
-  let make lookfrom lookat vup vfov aspect_ratio =
+  let make lookfrom lookat vup vfov aspect_ratio aperture focus_dist =
     let theta = vfov /. 360. *. (2. *. Float.pi) in
     let h = Float.tan (theta /. 2.) in
     let h_vp = 2. *. h in
@@ -98,12 +110,17 @@ module Camera = struct
     let v = Vec.cross u w in
 
     let pos = lookfrom in
-    let horizontal = u *| w_vp in
-    let vertical = v *| h_vp in
-    let ll_corner = pos -| horizontal /| 2. -| vertical /| 2. -| w in
-    { pos; ll_corner; horizontal; vertical; }
+    let horizontal = u *| w_vp *| focus_dist in
+    let vertical = v *| h_vp *| focus_dist in
+    let ll_corner = pos -| horizontal /| 2. -| vertical /| 2. -| w *| focus_dist in
+    let lens_radius = aperture /. 2. in
+    { pos; ll_corner; horizontal; vertical; u; v; w; lens_radius; }
 
-  let ray {pos; ll_corner; horizontal; vertical; } s t =
+  let ray {pos; ll_corner; horizontal; vertical; u; v; w; lens_radius; } s t =
+    let rd_x, rd_y = random_in_unit_disc () in
+    let rd_x, rd_y = rd_x *. lens_radius, rd_y *. lens_radius in
+    (* let rd_x, rd_y = 0., 0. in *)
+    let pos = pos +| u *| rd_x +| v *| rd_y in
     {
       pos;
       dir = Vec.normalize @@ ll_corner  +| horizontal *| s +| vertical *| t -| pos;
@@ -212,11 +229,17 @@ let write_color array row col (color : vec) num_samples =
 let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
   rng := rng_arg;
   let w, h = float_of_int w_i, float_of_int h_i in
-  let cam = Camera.make
-      Vec.(make (-2.) 2. 1.)
-      Vec.(make 0. 0. (-1.))
+  let cam =
+    let lookfrom = Vec.(make 3. 3. 2.) in
+    let lookat = Vec.(make 0. 0. (-1.)) in
+    let dist_to_focus = Vec.mag (lookfrom -| lookat) in
+    let aperture = 1. in
+    Camera.make
+      lookfrom lookat
       Vec.(make 0. 1. 0.)
       35. (w /. h)
+      aperture
+      dist_to_focus
   in
   let world = [
     {center = (Vec.make (-1.) 0. (-1.)); radius = 0.5; mat = Metal (Vec.make 0.8 0.8 0.8)};
