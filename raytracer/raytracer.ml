@@ -22,6 +22,9 @@ module Vec = struct
 
   let albedo_correct t =
     { x = sqrt t.x; y = sqrt t.y; z = sqrt t.z; }
+
+  let random a b c =
+    { x = a *. !rng (); y = b *. !rng (); z = c *. !rng (); }
 end
 type vec = Vec.t = {x : float; y : float; z : float}
 
@@ -225,19 +228,59 @@ let write_color array row col (color : vec) num_samples =
     with e -> Printf.printf "col %i(%i), row %i" col (4*col) row; raise e
   end
 
+let random_scene () =
+    let ground =
+      {center = (Vec.make 0. (-1000.) 0.); radius = 1000.; mat = Diffuse (Vec.make 0.5 0.5 0.5)}
+    in
+    let num = 23 in
+    let random =
+      List.init num (fun i ->
+          List.init num (fun j ->
+              let center =
+                Vec.make (float_of_int (i - num / 2)) 0.2 (float_of_int (j - num / 2))
+                +| Vec.random 0.9 0. 0.9
+              in
+              if Vec.mag (center -| Vec.make 4. 0.2 0.) < 0.9
+              then None
+              else
+                let mat =
+                  let mat_rd = !rng () in
+                  if mat_rd < 0.8
+                  then Diffuse (Vec.make (!rng () *. !rng ()) (!rng () *. !rng ()) (!rng () *. !rng ()))
+                  else if mat_rd < 0.95
+                  then FuzzyMetal (Vec.make 0.5 0.5 0.5 +| Vec.random 0.5 0.5 0.5, !rng ())
+                  else Dielectric 1.5
+                in
+                Some {center; radius = 0.2; mat}
+            )
+        )
+      |> List.flatten
+      |> List.filter_map (fun x -> x)
+    in
+    let big_spheres =
+      let radius = 1. in
+      [
+      {center = Vec.make 0. 1. 0.; radius; mat = Dielectric 1.5; };
+      {center = Vec.make (-4.) 1. 0.; radius; mat = Diffuse (Vec.make 0.4 0.2 0.1); };
+      {center = Vec.make 4. 1. 0.; radius; mat = Metal (Vec.make 0.7 0.6 0.5); };
+    ]
+    in
+    ground :: big_spheres @ random
+
 
 let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
   rng := rng_arg;
   let w, h = float_of_int w_i, float_of_int h_i in
   let cam =
-    let lookfrom = Vec.(make 3. 3. 2.) in
-    let lookat = Vec.(make 0. 0. (-1.)) in
+    let lookfrom = Vec.make 13. 2. 3. in
+    let lookat = Vec.make 0. 0. 0. in
     let dist_to_focus = Vec.mag (lookfrom -| lookat) in
-    let aperture = 1. in
+    let dist_to_focus = 10. in
+    let aperture = 0.1 in
     Camera.make
       lookfrom lookat
       Vec.(make 0. 1. 0.)
-      35. (w /. h)
+      20. (w /. h)
       aperture
       dist_to_focus
   in
@@ -251,6 +294,7 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
     {center = (Vec.make 0. (-100.5) (-1.)); radius = 100.; mat = Diffuse (Vec.make 0.8 0.8 0.)};
 
   ] in
+  let world = random_scene () in
   Brr.Console.log ["Raytracing"];
   let samples = Array.init h_i (fun row ->
       Brr.Console.log [row];
