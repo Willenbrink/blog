@@ -4,7 +4,8 @@
     raytracer)
  (preprocess
   (pps js_of_ocaml-ppx))
- (modes js))
+ (modes js)
+)
 
 (rule
     (targets index.html)

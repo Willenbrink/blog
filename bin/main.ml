@@ -23,6 +23,7 @@ let raytrace_main canvas () =
   let open Brr_canvas.Canvas in
   let array = Array2.init Int8_unsigned C_layout (h canvas) (4 * w canvas) init in
   let rng () = Js_of_ocaml__Js.math##random in
+  let start = Js_of_ocaml__Js.date##now in
   begin
     try
       Raytracer.main rng array (w canvas, h canvas) 3
@@ -30,6 +31,8 @@ let raytrace_main canvas () =
     | e ->
       Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
   end;
+  let end_ = Js_of_ocaml__Js.date##now in
+  Console.(log [str "Raytracing finished in:"; end_ -. start; str "ms"]);
   let data = convert_to_img_data array in
   Util.log data |> ignore;
   let ctx = Brr_canvas.C2d.get_context canvas in
