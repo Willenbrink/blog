@@ -1,5 +1,7 @@
 open Brr
 
+type framebuffer = (int, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array2.t
+
 let convert_to_img_data bigarray =
   let h = Bigarray.Array2.dim1 bigarray in
   let w = Bigarray.Array2.dim2 bigarray in
@@ -13,6 +15,13 @@ let convert_to_img_data bigarray =
     |> Tarray.(of_tarray Uint8_clamped)
   in
   Brr_canvas.C2d.Image_data.create ~data ~w:(w / 4) ~h ()
+
+let measure_time name f =
+  let start = Js_of_ocaml__Js.date##now in
+  f ();
+  let end_ = Js_of_ocaml__Js.date##now in
+  Console.(log [str name; str "finished in:"; end_ -. start; str "ms"]);
+  ()
 
 let raytrace_main canvas () =
   let init row col = match col mod 4 with
