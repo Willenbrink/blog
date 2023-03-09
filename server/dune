@@ -1,5 +1,5 @@
 (executable
  (name server)
  (public_name blog_server)
- (libraries dream dream-livereload)
+ (libraries dream)
 )
