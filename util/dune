@@ -1,0 +1,5 @@
+(library
+ (name util)
+ (virtual_modules util)
+ ; (default_implementation util_unix)
+)

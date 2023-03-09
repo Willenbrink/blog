@@ -1,33 +1,4 @@
-let rng = ref (fun () -> 0.)
-
-let print_chance chance printf =
-  if !rng () < chance
-  then printf ()
-
-module Vec = struct
-  include Vector3
-  open Vector3
-
-  module Syntax = struct
-    let (+|) = add
-    let (-|) a b = { x = a.x -. b.x; y = a.y -. b.y; z = a.z -. b.z }
-    let ( *|) = mult
-    let (/|) = div
-  end
-
-  let near_zero t =
-    abs_float t.x <= Float.epsilon *. 4.
-    || abs_float t.y <= Float.epsilon *. 4.
-    || abs_float t.z <= Float.epsilon *. 4.
-
-  let albedo_correct t =
-    { x = sqrt t.x; y = sqrt t.y; z = sqrt t.z; }
-
-  let random a b c =
-    { x = a *. !rng (); y = b *. !rng (); z = c *. !rng (); }
-end
-type vec = Vec.t = {x : float; y : float; z : float}
-
+open Util
 open Vec.Syntax
 
 module Ray = struct
@@ -46,8 +17,8 @@ type material =
 type hit = { pos : Vec.t; normal : Vec.t; dist : float; front_face : bool; mat : material }
 
 let rec random_in_unit_disc () =
-  let r1 = !rng () *. 2. -. 1. in
-  let r2 = !rng () *. 2. -. 1. in
+  let r1 = rng () *. 2. -. 1. in
+  let r2 = rng () *. 2. -. 1. in
   if (r1 *. r1) +. (r2 *. r2) >= 1.
   then random_in_unit_disc ()
   else r1, r2
@@ -73,18 +44,18 @@ module Sphere = struct
       | _ -> None
 
   let rec random_in_sphere ({center; radius; _} as s) =
-    let r1 = !rng () *. radius *. 2. in
-    let r2 = !rng () *. radius *. 2. in
-    let r3 = !rng () *. radius *. 2. in
+    let r1 = rng () *. radius *. 2. in
+    let r2 = rng () *. radius *. 2. in
+    let r3 = rng () *. radius *. 2. in
     let rand = Vec.make r1 r2 r3 in
     if Vec.mag2 rand >= 1.
     then random_in_sphere s
     else center +| rand
 
   let rec random_in_unit_sphere () =
-    let r1 = !rng () *. 2. -. 1. in
-    let r2 = !rng () *. 2. -. 1. in
-    let r3 = !rng () *. 2. -. 1. in
+    let r1 = rng () *. 2. -. 1. in
+    let r2 = rng () *. 2. -. 1. in
+    let r3 = rng () *. 2. -. 1. in
     let rand = Vec.make r1 r2 r3 in
     if Vec.mag2 rand >= 1.
     then random_in_unit_sphere ()
@@ -189,7 +160,7 @@ let ray_color world r =
             r0 +. (1. -. r0) *. Float.pow (1. -. cos_theta) 5.
           in
 
-          if refr_ratio *. sin_theta > 1. || reflectance > !rng ()
+          if refr_ratio *. sin_theta > 1. || reflectance > rng ()
           then
             reflect 0.
           else
@@ -244,11 +215,11 @@ let random_scene () =
               then None
               else
                 let mat =
-                  let mat_rd = !rng () in
+                  let mat_rd = rng () in
                   if mat_rd < 0.8
-                  then Diffuse (Vec.make (!rng () *. !rng ()) (!rng () *. !rng ()) (!rng () *. !rng ()))
+                  then Diffuse (Vec.make (rng () *. rng ()) (rng () *. rng ()) (rng () *. rng ()))
                   else if mat_rd < 0.95
-                  then FuzzyMetal (Vec.make 0.5 0.5 0.5 +| Vec.random 0.5 0.5 0.5, !rng ())
+                  then FuzzyMetal (Vec.make 0.5 0.5 0.5 +| Vec.random 0.5 0.5 0.5, rng ())
                   else Dielectric 1.5
                 in
                 Some {center; radius = 0.2; mat}
@@ -268,13 +239,11 @@ let random_scene () =
     ground :: big_spheres @ random
 
 
-let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
-  rng := rng_arg;
+let main array (w_i,h_i) sqrt_samples_per_pixel =
   let w, h = float_of_int w_i, float_of_int h_i in
   let cam =
     let lookfrom = Vec.make 13. 2. 3. in
     let lookat = Vec.make 0. 0. 0. in
-    let dist_to_focus = Vec.mag (lookfrom -| lookat) in
     let dist_to_focus = 10. in
     let aperture = 0.1 in
     Camera.make
@@ -354,7 +323,6 @@ let main rng_arg array (w_i,h_i) sqrt_samples_per_pixel =
   Brr.Console.log ["Writing file"];
   for row = 0 to h_i - 1 do
     for col = 0 to w_i - 1 do
-      (* print_chance 0.0001 (fun () -> Printf.printf "%f %f %f\n" r.dir.x r.dir.y r.dir.z); *)
       let samples_per_pixel = float_of_int (sqrt_samples_per_pixel * sqrt_samples_per_pixel) in
       write_color array row col samples.(row).(col) samples_per_pixel
     done;

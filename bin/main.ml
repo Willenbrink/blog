@@ -31,11 +31,10 @@ let raytrace_main canvas () =
   let open Bigarray in
   let open Brr_canvas.Canvas in
   let array = Array2.init Int8_unsigned C_layout (h canvas) (4 * w canvas) init in
-  let rng () = Js_of_ocaml__Js.math##random in
   let start = Js_of_ocaml__Js.date##now in
   begin
     try
-      Raytracer.main rng array (w canvas, h canvas) 1
+      Raytracer.main array (w canvas, h canvas) 1
     with
     | e ->
       Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])

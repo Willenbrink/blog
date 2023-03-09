@@ -1,0 +1,1 @@
+val rng : unit -> float

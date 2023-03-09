@@ -1,0 +1,7 @@
+(library
+ (name util_js)
+  (libraries js_of_ocaml js_of_ocaml-ppx)
+ (preprocess
+  (pps js_of_ocaml-ppx))
+ ; (modes js)
+ (implements util))

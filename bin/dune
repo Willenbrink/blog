@@ -1,7 +1,7 @@
 (executable
  (name main)
  (libraries js_of_ocaml brr
-    raytracer)
+    raytracer util_js)
  (preprocess
   (pps js_of_ocaml-ppx))
  (modes js)
