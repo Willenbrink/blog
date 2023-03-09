@@ -112,7 +112,7 @@ let normal ({center; radius; _}) r dist =
 
 
 let ray_color world r =
-  let rec hit r =
+  let rec hit r count =
     let f acc el =
       let max_dist = match acc with
         | None -> Float.infinity
@@ -124,13 +124,18 @@ let ray_color world r =
         let normal, front_face = normal el r dist in
         Some { pos=Ray.at dist r; normal; dist; front_face; mat = el.mat }
     in
-    List.fold_left f None world
-  and ray_color r count hit_data = match (count, hit_data) with
-    | 0,_ | _,None ->
+    let hit_data =
+      if count <= 0
+      then None
+      else List.fold_left f None world
+    in
+    ray_color r count hit_data
+  and ray_color r count hit_data = match hit_data with
+    | None ->
       let unit = Vec.normalize r.dir in
       let t = 0.5 *. (unit.y +. 1.) in
       Vec.(make 1. 1. 1.) *| (1. -. t) +| Vec.(make 0.5 0.7 1.) *| t
-    | count, Some { pos; normal; dist; front_face; mat} ->
+    | Some { pos; normal; dist; front_face; mat} ->
       let mat_color = match mat with
         | Diffuse c
         | Metal c
@@ -171,14 +176,14 @@ let ray_color world r =
             in
             {pos; dir = refract}
       in
-      let color = ray_color ray (count - 1) (hit ray) in
+      let color = hit ray (count - 1) in
       Vec.{
         x = color.x *. mat_color.x;
         y = color.y *. mat_color.y;
         z = color.z *. mat_color.z;
       }
   in
-  ray_color r 20 (hit r)
+  hit r 20
 
 
 let write_color array row col (color : vec) num_samples =

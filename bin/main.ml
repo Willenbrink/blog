@@ -34,7 +34,7 @@ let raytrace_main canvas () =
   let start = Js_of_ocaml__Js.date##now in
   begin
     try
-      Raytracer.main array (w canvas, h canvas) 1
+      Raytracer.main array (w canvas, h canvas) 3
     with
     | e ->
       Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
