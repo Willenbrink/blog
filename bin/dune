@@ -1,10 +1,12 @@
 (executable
- (name main)
+ (name frontend)
+ (public_name frontend)
  (libraries js_of_ocaml brr
     raytracer util_js)
  (preprocess
   (pps js_of_ocaml-ppx))
  (modes js)
+ (package blog_frontend)
 )
 
 (rule

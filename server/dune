@@ -2,4 +2,5 @@
  (name server)
  (public_name blog_server)
  (libraries dream)
+ (package blog_server)
 )
