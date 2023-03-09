@@ -23,28 +23,59 @@ let measure_time name f =
   Console.(log [str name; str "finished in:"; end_ -. start; str "ms"]);
   ()
 
-let raytrace_main canvas () =
-  let init row col = match col mod 4 with
-    | 3 -> 255
-    | _ -> 0
+let worker () =
+  let open Brr_io in
+  let open Brr_webworkers in
+  let apply (w,h,num_rays,kernel_size) =
+    let array : framebuffer =
+      let init row col = match col mod 4 with
+        | 3 -> 255
+        | _ -> 0
+      in
+      let open Bigarray in
+      Array2.init Int8_unsigned C_layout h (w * 4) init
+    in
+    Raytracer.main array w h num_rays kernel_size;
+    Worker.G.post (array : framebuffer)
   in
-  let open Bigarray in
-  let open Brr_canvas.Canvas in
-  let array = Array2.init Int8_unsigned C_layout (h canvas) (4 * w canvas) init in
-  let start = Js_of_ocaml__Js.date##now in
-  begin
+  Fut.await (Ev.next Message.Ev.message G.target) (fun e -> apply (Message.Ev.data (Ev.as_type e)))
+
+let update_canvas canvas (array : framebuffer) =
+  (* Console.(log [str "Raytracing done"; array]); *)
+  let data = convert_to_img_data array in
+  let ctx = Brr_canvas.C2d.get_context canvas in
+  Brr_canvas.C2d.put_image_data ctx data ~x:0 ~y:0;
+  ()
+
+let raytrace_main canvas () =
+  measure_time "Raytracing" (fun () ->
     try
-      Raytracer.main array (w canvas, h canvas) 3
+      let spawn_worker () =
+        try Ok (Brr_webworkers.Worker.create (Jstr.v "main.js")) with
+        | Jv.Error e -> Error e
+      in
+      let workers = List.init 1 (fun _ -> match spawn_worker () with
+          | Error e -> failwith "Worker init failed"
+          | Ok w -> w
+        )
+      in
+      List.iter (fun w ->
+        let open Brr_io in
+        let open Brr_webworkers in
+        (* let msg = Ev.next Message.Ev.message (Worker.as_target w) in *)
+        (* Console.log [Console.str "Raytring begin"; array]; *)
+        Worker.post w (300, 200, 1, 0);
+        let msg = Ev.next Message.Ev.message (Worker.as_target w) in
+        Fut.await msg (fun ev ->
+            (Message.Ev.data (Ev.as_type ev) : framebuffer)
+            |> update_canvas canvas
+          );
+        ()
+      ) workers
     with
     | e ->
       Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
-  end;
-  let end_ = Js_of_ocaml__Js.date##now in
-  Console.(log [str "Raytracing finished in:"; end_ -. start; str "ms"]);
-  let data = convert_to_img_data array in
-  Util.log data |> ignore;
-  let ctx = Brr_canvas.C2d.get_context canvas in
-  Brr_canvas.C2d.put_image_data ctx data ~x:0 ~y:0
+  )
 
 
 let main () =
@@ -61,4 +92,4 @@ let main () =
   raytrace_main canvas ();
   El.set_children (Document.body G.document) children
 
-let () = main ()
+let () = if Brr_webworkers.Worker.ami () then worker () else main ()
