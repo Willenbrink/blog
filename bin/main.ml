@@ -16,13 +16,6 @@ let convert_to_img_data bigarray =
   in
   Brr_canvas.C2d.Image_data.create ~data ~w:(w / 4) ~h ()
 
-let measure_time name f =
-  let start = Js_of_ocaml__Js.date##now in
-  f ();
-  let end_ = Js_of_ocaml__Js.date##now in
-  Console.(log [str name; str "finished in:"; end_ -. start; str "ms"]);
-  ()
-
 let worker () =
   let open Brr_io in
   let open Brr_webworkers in
@@ -48,34 +41,35 @@ let update_canvas canvas (array : framebuffer) =
   ()
 
 let raytrace_main canvas () =
-  measure_time "Raytracing" (fun () ->
-    try
-      let spawn_worker () =
-        try Ok (Brr_webworkers.Worker.create (Jstr.v "main.js")) with
-        | Jv.Error e -> Error e
-      in
-      let workers = List.init 1 (fun _ -> match spawn_worker () with
-          | Error e -> failwith "Worker init failed"
-          | Ok w -> w
-        )
-      in
-      List.iter (fun w ->
+  let start = Js_of_ocaml__Js.date##now in
+  try
+    let spawn_worker () =
+      try Ok (Brr_webworkers.Worker.create (Jstr.v "main.js")) with
+      | Jv.Error e -> Error e
+    in
+    let workers = List.init 1 (fun _ -> match spawn_worker () with
+        | Error e -> failwith "Worker init failed"
+        | Ok w -> w
+      )
+    in
+    List.iter (fun w ->
         let open Brr_io in
         let open Brr_webworkers in
         (* let msg = Ev.next Message.Ev.message (Worker.as_target w) in *)
         (* Console.log [Console.str "Raytring begin"; array]; *)
-        Worker.post w (300, 200, 1, 0);
+        Worker.post w (300, 200, 10, 0);
         let msg = Ev.next Message.Ev.message (Worker.as_target w) in
         Fut.await msg (fun ev ->
             (Message.Ev.data (Ev.as_type ev) : framebuffer)
-            |> update_canvas canvas
+            |> update_canvas canvas;
+            let end_ = Js_of_ocaml__Js.date##now in
+            Console.(log [str "Raytracing finished in:"; end_ -. start; str "ms"]);
           );
         ()
       ) workers
-    with
-    | e ->
-      Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
-  )
+  with
+  | e ->
+    Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
 
 
 let main () =
