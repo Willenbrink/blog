@@ -44,7 +44,7 @@ let raytrace_main canvas () =
   let start = Js_of_ocaml__Js.date##now in
   try
     let spawn_worker () =
-      try Ok (Brr_webworkers.Worker.create (Jstr.v "main.js")) with
+      try Ok (Brr_webworkers.Worker.create (Jstr.v "public/frontend.js")) with
       | Jv.Error e -> Error e
     in
     let workers = List.init 1 (fun _ -> match spawn_worker () with
@@ -76,14 +76,10 @@ let main () =
   let w,h = 900, 600 in
   let h1 = El.h1 [El.txt' "Media test"] in
   let info = El.txt' "Media information is dumped in the browser console."in
-  let stream = ref None in
   let canvas = Brr_canvas.Canvas.create ~w ~h [El.txt' "Javascript is needed to view this content."] in
   let view = Brr_canvas.Canvas.to_el canvas in
-  let cam = Util.button (Media.test_stream ~view `Camera stream) "Open camera" in
-  let screen = Util.button (Media.test_stream ~view `Screen stream) "Share screen" in
   let raytrace_b = Util.button (raytrace_main canvas) "Run Raytracing" in
-  let children = [h1; El.p [info]; El.p [cam; screen; raytrace_b]; view] in
-  raytrace_main canvas ();
-  El.set_children (Document.body G.document) children
+  let children = [h1; El.p [info]; El.p [ raytrace_b]; view] in
+  El.fold_find_by_selector (fun el () -> El.set_children el children) (Jstr.of_string "#app") ()
 
 let () = if Brr_webworkers.Worker.ami () then worker () else main ()

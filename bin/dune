@@ -9,16 +9,6 @@
  ; (package blog_frontend)
 )
 
-(rule
-    (targets index.html)
-    (deps main.html)
-    (action (run cp %{deps} %{targets})))
-
-(rule
-    (targets main.js)
-    (deps frontend.bc.js)
-    (action (run cp %{deps} %{targets})))
-
 (alias
     (name default)
     (deps main.js index.html))

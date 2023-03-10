@@ -1,6 +1,5 @@
 (executable
  (name server)
  (public_name blog_server)
- (libraries dream)
- (package blog)
-)
+ (libraries dream tyxml lwt public_files)
+ (package blog))
