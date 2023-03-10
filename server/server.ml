@@ -1,5 +1,8 @@
 let () =
-  Dream.run
+  let port =
+    try Sys.argv.(1) |> int_of_string_opt |> Option.get with _ -> 8080
+  in
+  Dream.run ~port
   @@ Dream.logger
   (* @@ Dream_livereload.inject_script ()    (\* <-- *\) *)
   @@ Dream.router [
