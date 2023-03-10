@@ -21,6 +21,8 @@ let error_template error debug_dump suggested_response =
 
 let raytracer_html =
   let open Tyxml_html in
+  let open Tyxml in
+  let test = "GET raytracing.png" in
   html ~a:[a_lang "en"]
     (head
        (title (txt "Raytracing in a weekend"))
@@ -32,10 +34,11 @@ let raytracer_html =
     )
     (body [
       (h1 [txt "Raytracing"]);
-      (div ~a:[a_id "app"]
-         [noscript [txt "You need to enable Javascript to see this content."]]
-      )
-
+      (div
+         [
+           [%html "<button _data-request="test" _data-effect=element> Serverside raytracing </button>"];
+           (div ~a:[a_id "app"] [noscript [txt "You need to enable Javascript to see this content."]]);
+         ])
     ])
 
 let components = [
@@ -52,5 +55,6 @@ let () =
   @@ Dream.router [
     Dream.get "/index.html" @@ (fun _ -> Dream.html @@ string_of_html raytracer_html);
     Dream.get "/public/**" @@ Dream.static "_build/default/public/";
+    Dream.get "raytracing.png" @@ (fun _ -> Dream.html @@ string_of_html raytracer_html);
     (* Dream_livereload.route ();            (\* <-- *\) *)
   ]

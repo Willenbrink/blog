@@ -1,5 +1,6 @@
 (executable
  (name server)
  (public_name blog_server)
- (libraries dream tyxml lwt public_files)
+ (libraries dream tyxml lwt public_files hc_page)
+ (preprocess (pps tyxml-ppx))
  (package blog))

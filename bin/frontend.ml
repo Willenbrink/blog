@@ -80,6 +80,8 @@ let main () =
   let view = Brr_canvas.Canvas.to_el canvas in
   let raytrace_b = Util.button (raytrace_main canvas) "Run Raytracing" in
   let children = [h1; El.p [info]; El.p [ raytrace_b]; view] in
-  El.fold_find_by_selector (fun el () -> El.set_children el children) (Jstr.of_string "#app") ()
+  El.fold_find_by_selector (fun el () -> El.set_children el children) (Jstr.of_string "#app") ();
+  Console.log ["Init of hc"];
+  Hc_page.init ()
 
 let () = if Brr_webworkers.Worker.ami () then worker () else main ()

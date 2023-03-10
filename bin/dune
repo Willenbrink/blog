@@ -2,7 +2,7 @@
  (name frontend)
  ; (public_name frontend)
  (libraries js_of_ocaml brr
-    raytracer util_js)
+    raytracer util_js hc_page)
  (preprocess
   (pps js_of_ocaml-ppx))
  (modes js)
