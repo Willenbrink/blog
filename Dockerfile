@@ -3,12 +3,10 @@ FROM ocaml/opam:opensuse-ocaml-4.14
 COPY . app
 WORKDIR "app/"
 RUN ls hc
-# RUN opam pin https://github.com/Willenbrink/hc.git --with-version=dev
-# RUN sudo zypper install -y libev-devel libopenssl-devel
-# RUN sudo apt-get -y libev-dev libopenssl-dev
+RUN opam pin hc --with-version=dev
 RUN sudo zypper install -y libev-devel libopenssl-devel
+# RUN sudo apt-get -y libev-dev libopenssl-dev
 RUN opam install -y dune dream js_of_ocaml brr js_of_ocaml-ppx
-RUN rm hc/dune-project
 RUN opam install -y .
 EXPOSE $PORT
 CMD blog_server $PORT
