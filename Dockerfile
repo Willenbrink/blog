@@ -4,8 +4,8 @@ FROM ocamlpro/ocaml:latest
 COPY . app
 WORKDIR "app/"
 
-RUN sudo mkdir _opam && sudo chown ocaml:ocaml --recursive _opam || true
 RUN opam switch create . ocaml-system --deps --locked
+RUN sudo chown ocaml:ocaml --recursive _opam || true
 
 RUN opam --version
 # RUN sudo zypper update -y
