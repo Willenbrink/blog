@@ -1,4 +1,4 @@
-FROM ocaml/opam:opensuse-ocaml-4.14
+FROM ocaml/opam:opensuse-ocaml-5.1
 COPY . app
 WORKDIR "app/"
 RUN opam pin ./hc#master
