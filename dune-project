@@ -19,7 +19,7 @@
  (name blog)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune dream hc_page)
+ (depends ocaml dune dream)
  (tags
   (topics "to describe" your project)))
 
