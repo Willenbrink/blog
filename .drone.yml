@@ -14,6 +14,7 @@ steps:
 #    path: /docker_config/config.json
   commands:
    - echo building stuff...
+   - echo bla > testing
 #  - export DOCKER_CONFIG=/docker_config
 #  - ./build_docker.sh
 #  - docker push registry.lph.zone:5000/calimo:${DRONE_BRANCH}
@@ -23,6 +24,7 @@ steps:
   pull: always
   commands:
   - echo testin stuff...
+  - cat testing
 
 volumes:
 - name: dockersock
