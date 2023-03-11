@@ -1,5 +1,5 @@
 # FROM ocaml/opam:opensuse-ocaml-5.0
-FROM ocaml/opam:debian-testing-ocaml-5.0
+FROM ocamlpro/ocaml
 
 COPY . app
 WORKDIR "app/"
@@ -8,10 +8,10 @@ RUN opam --version
 # RUN sudo zypper update -y
 # RUN sudo zypper install -y opam
 
-RUN sudo mkdir _build; sudo chown opam:opam --recursive _build
-RUN opam pin ./hc --with-version=dev
-RUN opam pin https://github.com/talex5/dream.git --with-version=eio
-RUN opam pin https://github.com/ahrefs/tyxml.git --with-version=ocaml5
+RUN sudo mkdir _build && sudo chown ocaml:ocaml --recursive _build || true
+RUN opam pin ./hc -w
+RUN opam pin https://github.com/talex5/dream.git -w
+RUN opam pin https://github.com/ahrefs/tyxml.git -w
 
 # RUN sudo zypper install -y libev-devel libopenssl-devel
 
