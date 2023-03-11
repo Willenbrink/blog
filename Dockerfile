@@ -15,4 +15,4 @@ RUN opam install -y .
 
 # RUN eval $(opam env); dune build
 EXPOSE $PORT
-CMD blog_server.exe $PORT
+CMD blog_server $PORT

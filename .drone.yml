@@ -6,7 +6,7 @@ name: default
 
 steps:
 - name: build
-  image: docker:bash
+  image: ocaml/opam:opensuse-ocaml-5.0
   environment:
     USERNAME:
         from_secret: docker_username
