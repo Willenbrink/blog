@@ -3,7 +3,7 @@ FROM ocaml/opam:opensuse-ocaml-4.14
 COPY . app
 WORKDIR "app/"
 RUN sudo rm hc/dune-project
-RUN sudo mkdir _build; sudo chown opam:opam --recursive mkdir
+RUN sudo mkdir _build; sudo chown opam:opam --recursive _build
 # RUN opam pin ./hc -w
 RUN sudo zypper install -y libev-devel libopenssl-devel
 # RUN sudo apt-get -y libev-dev libopenssl-dev
