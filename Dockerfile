@@ -1,8 +1,10 @@
 # FROM ocaml/opam:opensuse-ocaml-5.0
-FROM ocamlpro/ocaml
+FROM ocamlpro/ocaml:latest
 
 COPY . app
 WORKDIR "app/"
+
+RUN opam switch create . ocaml-system --deps --locked
 
 RUN opam --version
 # RUN sudo zypper update -y
