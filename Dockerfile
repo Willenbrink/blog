@@ -1,9 +1,9 @@
-FROM ocaml/opam:opensuse-ocaml-5.0
+FROM ocaml/opam:opensuse-ocaml-4.14
 # FROM ocaml/opam:debian-testing-ocaml-5.0
 COPY . app
 WORKDIR "app/"
 RUN ls hc
-# RUN opam pin add hc https://github.com/Willenbrink/hc.git.0.0.2
+# RUN opam pin https://github.com/Willenbrink/hc.git --with-version=dev
 # RUN sudo zypper install -y libev-devel libopenssl-devel
 # RUN sudo apt-get -y libev-dev libopenssl-dev
 RUN sudo zypper install -y libev-devel libopenssl-devel
