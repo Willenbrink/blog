@@ -4,7 +4,7 @@ FROM ocamlpro/ocaml:latest
 COPY . app
 WORKDIR "app/"
 
-RUN opam switch create . ocaml-system --deps --locked
+RUN sudo opam switch create . ocaml-system --deps --locked
 RUN sudo chown ocaml:ocaml --recursive _opam || true
 
 RUN opam --version
