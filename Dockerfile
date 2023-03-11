@@ -4,6 +4,8 @@ FROM ocamlpro/ocaml:latest
 COPY . app
 WORKDIR "app/"
 
+USER root
+
 RUN chown ocaml:ocaml --recursive . || true
 RUN opam switch create . ocaml-system --deps --locked
 
