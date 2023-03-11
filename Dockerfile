@@ -3,6 +3,7 @@ FROM ocaml/opam:opensuse-ocaml-5.0
 COPY . app
 WORKDIR "app/"
 
+RUN sudo zypper update
 RUN sudo zypper install -y opam
 
 RUN sudo mkdir _build; sudo chown opam:opam --recursive _build
