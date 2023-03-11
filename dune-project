@@ -5,11 +5,11 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github Willenbrink/blog))
 
-(authors "Author Name")
+(authors "Sebastian Willenbrink")
 
-(maintainers "Maintainer Name")
+(maintainers "Sebastian Willenbrink")
 
 (license LICENSE)
 
@@ -19,9 +19,8 @@
  (name blog)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune dream)
+ (depends ocaml dune dream hc_page)
  (tags
   (topics "to describe" your project)))
-
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
