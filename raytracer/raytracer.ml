@@ -185,8 +185,7 @@ let ray_color world r =
   in
   hit r 20
 
-
-let write_color array row col (color : vec) num_samples =
+let write_color write_to_array row col (color : vec) num_samples =
   let scale = 1. /. num_samples in
   let color = (Vec.albedo_correct @@ color *| scale) *| 255. in
   let color_of_float float =
@@ -197,11 +196,8 @@ let write_color array row col (color : vec) num_samples =
   let b = color_of_float color.z in
   begin
     try
-      Bigarray.Array2.set array row (4*col+0) r;
-      Bigarray.Array2.set array row (4*col+1) g;
-      Bigarray.Array2.set array row (4*col+2) b;
-      ()
-    with e -> Printf.printf "col %i(%i), row %i" col (4*col) row; raise e
+      write_to_array row col (r,g,b)
+    with e -> Printf.printf "col %i(%i), row %i\n%!" col (4*col) row; raise e
   end
 
 let random_scene () =
@@ -244,7 +240,7 @@ let random_scene () =
     ground :: big_spheres @ random
 
 
-let main array w_i h_i num_rays kernel_size =
+let main write_to_array w_i h_i num_rays kernel_size =
   let w, h = float_of_int w_i, float_of_int h_i in
   let cam =
     let lookfrom = Vec.make 13. 2. 3. in
@@ -269,9 +265,9 @@ let main array w_i h_i num_rays kernel_size =
 
   ] in
   let world = random_scene () in
-  Brr.Console.log ["Raytracing"];
+  Util.log "Raytracing";
   let samples = Array.init h_i (fun row ->
-      Brr.Console.log [row];
+      Util.log (string_of_int row);
       Array.init w_i (fun col ->
           let color = ref (Vec.make 0. 0. 0.) in
           for i = 1 to num_rays do
@@ -286,12 +282,12 @@ let main array w_i h_i num_rays kernel_size =
         )
     )
   in
-  Brr.Console.log ["Aggregating samples"];
+  Util.log "Aggregating samples";
   Gaussian_kernel.apply samples w_i h_i kernel_size;
-  Brr.Console.log ["Writing file"];
+  Util.log "Writing file";
   for row = 0 to h_i - 1 do
     for col = 0 to w_i - 1 do
-      write_color array row col samples.(row).(col) (float_of_int num_rays)
+      write_color write_to_array row col samples.(row).(col) (float_of_int num_rays)
     done;
   done;
 

@@ -1,5 +1,5 @@
 (library
  (name raytracer)
- (libraries vector3 js_of_ocaml brr containers util)
+ (libraries vector3 util)
  (ocamlopt_flags -O3)
 )

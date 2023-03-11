@@ -28,7 +28,13 @@ let worker () =
       let open Bigarray in
       Array2.init Int8_unsigned C_layout h (w * 4) init
     in
-    Raytracer.main array w h num_rays kernel_size;
+    let write_to_array row col (r,g,b) =
+      Bigarray.Array2.set array row (col * 4 + 0) r;
+      Bigarray.Array2.set array row (col * 4 + 1) g;
+      Bigarray.Array2.set array row (col * 4 + 2) b;
+      ()
+    in
+    Raytracer.main write_to_array w h num_rays kernel_size;
     Worker.G.post (array : framebuffer)
   in
   Fut.await (Ev.next Message.Ev.message G.target) (fun e -> apply (Message.Ev.data (Ev.as_type e)))
@@ -40,7 +46,7 @@ let update_canvas canvas (array : framebuffer) =
   Brr_canvas.C2d.put_image_data ctx data ~x:0 ~y:0;
   ()
 
-let raytrace_main canvas () =
+let raytrace_main canvas w h () =
   let start = Js_of_ocaml__Js.date##now in
   try
     let spawn_worker () =
@@ -52,14 +58,16 @@ let raytrace_main canvas () =
         | Ok w -> w
       )
     in
-    List.iter (fun w ->
+    List.iter (fun worker ->
         let open Brr_io in
         let open Brr_webworkers in
         (* let msg = Ev.next Message.Ev.message (Worker.as_target w) in *)
         (* Console.log [Console.str "Raytring begin"; array]; *)
-        Worker.post w (300, 200, 10, 0);
-        let msg = Ev.next Message.Ev.message (Worker.as_target w) in
+        Worker.post worker (w, h, 2, 1);
+        let msg = Ev.next Message.Ev.message (Worker.as_target worker) in
         Fut.await msg (fun ev ->
+            Brr_canvas.Canvas.set_w canvas w;
+            Brr_canvas.Canvas.set_h canvas h;
             (Message.Ev.data (Ev.as_type ev) : framebuffer)
             |> update_canvas canvas;
             let end_ = Js_of_ocaml__Js.date##now in
@@ -71,17 +79,21 @@ let raytrace_main canvas () =
   | e ->
     Console.(log [str "Exception encountered:"; str @@ Printexc.to_string e])
 
-
 let main () =
-  let w,h = 900, 600 in
-  let h1 = El.h1 [El.txt' "Media test"] in
-  let info = El.txt' "Media information is dumped in the browser console."in
-  let canvas = Brr_canvas.Canvas.create ~w ~h [El.txt' "Javascript is needed to view this content."] in
+  let w,h = 600, 400 in
+  let canvas = Brr_canvas.Canvas.create [El.txt' "Javascript is needed to view this content."] in
   let view = Brr_canvas.Canvas.to_el canvas in
-  let raytrace_b = Util.button (raytrace_main canvas) "Run Raytracing" in
-  let children = [h1; El.p [info]; El.p [ raytrace_b]; view] in
+  let () =
+    (* let but = El.button [El.txt (Jstr.v label)] in *)
+    match El.find_first_by_selector (Jstr.of_string "#clientside_raytracing") with
+    | Some but ->
+      Ev.listen Ev.click (fun _ -> raytrace_main canvas w h ()) (El.as_target but)
+      |> ignore
+    | None ->
+      Console.log ["Failed to find raytracing button"];
+  in
+  let children = [view] in
   El.fold_find_by_selector (fun el () -> El.set_children el children) (Jstr.of_string "#app") ();
-  Console.log ["Init of hc"];
   Hc_page.init ()
 
 let () = if Brr_webworkers.Worker.ami () then worker () else main ()
