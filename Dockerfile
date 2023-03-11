@@ -3,7 +3,7 @@ FROM ocaml/opam:opensuse-ocaml-5.0
 COPY . app
 WORKDIR "app/"
 
-RUN sudo zypper upgrade -y
+RUN opam --version
 RUN sudo zypper update -y
 RUN sudo zypper install -y opam
 
