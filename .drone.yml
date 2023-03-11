@@ -7,6 +7,11 @@ name: default
 steps:
 - name: build
   image: docker:bash
+  environment:
+    USERNAME:
+        from_secret: docker_username
+    TOKEN:
+        from_secret: docker_token
   volumes:
   - name: dockersock
     path: /var/run/docker.sock
@@ -14,7 +19,9 @@ steps:
 #    path: /docker_config/config.json
   commands:
    - echo building stuff...
-   - echo bla > testing
+   - docker build -t blog .
+   - docker login -u $USERNAME -p $TOKEN
+   - docker push push ropianos/blog:${DRONE_BRANCH}
 #  - export DOCKER_CONFIG=/docker_config
 #  - ./build_docker.sh
 #  - docker push registry.lph.zone:5000/calimo:${DRONE_BRANCH}
