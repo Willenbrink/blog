@@ -3,4 +3,4 @@
 	url = https://github.com/Willenbrink/hc
 [submodule "tyxml"]
 	path = tyxml
-	url = git+ssh://git@github.com/ahrefs/tyxml.git
+	url = https://github.com/ocsigen/tyxml
