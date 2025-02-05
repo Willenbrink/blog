@@ -1,14 +1,13 @@
 (executable
  (name frontend)
  ; (public_name frontend)
- (libraries js_of_ocaml brr
-    raytracer util_js hc_page)
+ (libraries js_of_ocaml brr raytracer util_js htmlact htmlact.page)
  (preprocess
   (pps js_of_ocaml-ppx))
  (modes js)
  ; (package blog_frontend)
-)
+ )
 
 (alias
-    (name default)
-    (deps main.js index.html))
+ (name default)
+ (deps frontend.bc.js index.html))

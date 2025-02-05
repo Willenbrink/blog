@@ -1,6 +1,7 @@
 (executable
  (name server)
  (public_name blog_server)
- (libraries dream tyxml lwt public_files hc_page imagelib raytracer util_unix)
- (preprocess (pps tyxml-ppx))
+ (libraries dream tyxml lwt public_files imagelib raytracer util_unix)
+ (preprocess
+  (pps tyxml-ppx))
  (package blog))

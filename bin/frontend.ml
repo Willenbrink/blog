@@ -94,6 +94,6 @@ let main () =
   in
   let children = [view] in
   El.fold_find_by_selector (fun el () -> El.set_children el children) (Jstr.of_string "#app") ();
-  Hc_page.init ()
+  Htmlact_page.init ()
 
 let () = if Brr_webworkers.Worker.ami () then worker () else main ()

@@ -88,7 +88,7 @@ let () =
   (* @@ Dream_livereload.inject_script ()    (\* <-- *\) *)
   @@ Dream.router [
     Dream.get "/index.html" @@ (fun _ -> Dream.html @@ string_of_html raytracer_html);
-    Dream.get "/public/**" @@ Dream.static "_build/default/public/";
+    Dream.get "/public/**" @@ Dream.static "../_build/default/blog/public/";
     Dream.get "raytracing.png" @@ (fun ev ->
       Dream.from_filesystem "" !raytracing_out ev);
     Dream.get "raytracing" @@ (fun req ->
