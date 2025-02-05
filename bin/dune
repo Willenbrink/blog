@@ -10,4 +10,4 @@
 
 (alias
  (name default)
- (deps frontend.bc.js index.html))
+ (deps frontend.bc.js))
