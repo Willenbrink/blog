@@ -13,6 +13,11 @@ depends: [
   "ocaml"
   "dune" {>= "3.17"}
   "dream"
+  "vector3"
+  "imagelib"
+  "dream-html"
+  "brr"
+  "js_of_ocaml-ppx"
   "odoc" {with-doc}
 ]
 build: [
@@ -30,3 +35,4 @@ build: [
   ]
 ]
 dev-repo: "git+https://github.com/Willenbrink/blog.git"
+x-maintenance-intent: ["(latest)"]

@@ -1,4 +1,4 @@
-(lang dune 3.17)
+(lang dune 3.19)
 
 (name blog)
 
@@ -19,7 +19,16 @@
  (name blog)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune dream)
+ (depends
+   ocaml
+   dune
+   dream
+   vector3
+   imagelib
+   dream-html
+   brr
+   js_of_ocaml-ppx
+ )
  (tags
   (topics "to describe" your project)))
 
