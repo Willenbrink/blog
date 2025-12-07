@@ -1,0 +1,8 @@
+(library
+ (name static_files))
+
+(rule
+ (target frontend.js)
+ (deps ../bin/frontend.bc.js)
+ (action
+  (copy ../bin/frontend.bc.js frontend.js)))

@@ -65,7 +65,7 @@ let () =
     (* Set LIVERELOAD=1 to enable *)
     Dream_html.Livereload.route;
     Dream_html.get index raytracer_html;
-    Dream.get "/public/**" @@ Dream.static "../_build/default/blog/public/";
+    Dream.get "/wwwroot/**" @@ Dream.static "../_build/default/blog/wwwroot/";
     Dream.get "raytracing.png" @@ (fun ev ->
       Dream.from_filesystem "" !raytracing_out ev);
     Dream.get "raytracing" @@ (fun req ->

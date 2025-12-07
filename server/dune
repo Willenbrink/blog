@@ -1,7 +1,7 @@
 (executable
  (name server)
  (public_name blog_server)
- (libraries dream dream-html lwt public_files imagelib raytracer util_unix)
+ (libraries dream dream-html lwt static_files imagelib raytracer util_unix)
  (preprocess
   (pps dream-html.ppx))
  (package blog))
