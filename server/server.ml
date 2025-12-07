@@ -21,13 +21,13 @@ let raytracer_html request =
       ] ""
     ];
     body [] [
-      h1 [] [txt "Raytracing"];
-      div [] [
+      div [class_ "center"] [
+        h1 [] [txt "Raytracing"];
+        slider "width" 1 1000 300;
+        slider "height" 1 1000 200;
+        slider "rays per pixel" 1 100 3;
+        slider "kernelsize" 0 5 0;
         button [Hx.get "raytracing"; Hx.target "next #image"] [txt "Raytrace"];
-           slider "width" 1 1000 300;
-           slider "height" 1 1000 200;
-           slider "rays per pixel" 1 100 3;
-           slider "kernelsize" 0 5 0;
         div [id "image"] [noscript [] [txt "You need to enable Javascript to see this content."];
         ]
       ]
@@ -78,7 +78,7 @@ let () =
         raytracing_out := file;
         raytracer_render oc;
         close_out oc;
-        Dream_html.HTML.(img [src "raytracing.png"; alt "Raytraced image"])
+        Dream_html.HTML.(img [class_ "raytrace"; src "raytracing.png"; alt "Raytraced image"])
         |> Dream_html.respond
       );
   ]
