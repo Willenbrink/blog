@@ -6,3 +6,11 @@
  (deps ../bin/frontend.bc.js)
  (action
   (copy ../bin/frontend.bc.js frontend.js)))
+
+(rule
+ (with-stdout-to
+  css.ml
+  (progn
+   (echo "let css = {|")
+   (cat main.css)
+   (echo "|}"))))

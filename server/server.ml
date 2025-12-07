@@ -13,6 +13,7 @@ let raytracer_html request =
     head [charset "utf-8"; name "viewport"; content "width=device-width,initial-scale=1.0"] [
       title [] "Raytracing in a weekend";
       Livereload.script;
+      link [rel "stylesheet"; href "static/main.css"];
       script [
         src "https://unpkg.com/htmx.org@2.0.4/dist/htmx.js";
         integrity "sha384-oeUn82QNXPuVkGCkcrInrS1twIxKhkZiFfr2TdiuObZ3n3yIeMiqcRzkIcguaof1";
@@ -58,17 +59,16 @@ let () =
   let port =
     try Sys.argv.(1) |> int_of_string_opt |> Option.get with _ -> 8080
   in
-  (* Set LIVERELOAD=1 to enable *)
-  Unix.putenv "LIVERELOAD" "1";
   let raytracing_out = ref "" in
 
   Dream.run
     ~interface:"0.0.0.0" ~port
   @@ Dream.logger
   @@ Dream.router [
+  (* Set LIVERELOAD=1 to enable *)
     Dream_html.Livereload.route;
     Dream_html.get index raytracer_html;
-    Dream.get "/wwwroot/**" @@ Dream.static "../_build/default/blog/wwwroot/";
+    Dream.get "/static/**" @@ Dream.static "./_build/default/static/";
     Dream.get "raytracing.png" @@ (fun ev ->
       Dream.from_filesystem "" !raytracing_out ev);
     Dream.get "raytracing" @@ (fun req ->
