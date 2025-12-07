@@ -67,6 +67,7 @@ let () =
   @@ Dream.router [
   (* Set LIVERELOAD=1 to enable *)
     Dream_html.Livereload.route;
+    Dream.get "/" (fun ev -> Dream.redirect ~status:`Moved_Permanently ev "index.html");
     Dream_html.get index raytracer_html;
     Dream.get "/static/**" @@ Dream.static "./_build/default/static/";
     Dream.get "raytracing.png" @@ (fun ev ->
