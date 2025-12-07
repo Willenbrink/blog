@@ -58,11 +58,14 @@ let () =
   let port =
     try Sys.argv.(1) |> int_of_string_opt |> Option.get with _ -> 8080
   in
+  (* Set LIVERELOAD=1 to enable *)
+  Unix.putenv "LIVERELOAD" "1";
   let raytracing_out = ref "" in
-  Dream.run ~interface:"0.0.0.0" ~port
+
+  Dream.run
+    ~interface:"0.0.0.0" ~port
   @@ Dream.logger
   @@ Dream.router [
-    (* Set LIVERELOAD=1 to enable *)
     Dream_html.Livereload.route;
     Dream_html.get index raytracer_html;
     Dream.get "/wwwroot/**" @@ Dream.static "../_build/default/blog/wwwroot/";
@@ -78,5 +81,4 @@ let () =
         Dream_html.HTML.(img [src "raytracing.png"; alt "Raytraced image"])
         |> Dream_html.respond
       );
-    (* Dream_livereload.route ();            (\* <-- *\) *)
   ]
